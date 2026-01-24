@@ -1,0 +1,59 @@
+name: Sync All Cangjie Repos (Pull & Push)
+
+on:
+  schedule:
+    - cron: '0 * * * *' # 每小时执行
+  workflow_dispatch:
+
+jobs:
+  sync-job:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        repo_name:
+          - cangjie_compiler
+          - cangjie_docs
+          - cangjie_multiplatform_interop
+          - cangjie_runtime
+          - cangjie_stdx
+          - cangjie_tools
+          - llvm-project
+
+    steps:
+      - name: Sync ${{ matrix.repo_name }}
+        run: |
+          # --- 1. 配置变量 ---
+          # 目标 (GitHub): 使用 Token 认证
+          TARGET_URL="https://cangjie-bot:${{ secrets.GH_PAT }}@github.com/cangjie-bot/${{ matrix.repo_name }}.git"
+          # 源 (GitCode): 公开读取
+          SOURCE_URL="https://gitcode.com/Cangjie/${{ matrix.repo_name }}.git"
+          
+          echo ">>> 正在处理仓库: ${{ matrix.repo_name }}"
+
+          # --- 2. Clone GitHub (作为基准) ---
+          # 使用 --bare 模式，因为我们不需要检出代码文件，只需要 .git 目录及历史记录
+          # 这样速度快，且支持 llvm-project 这种大仓库
+          echo ">>> Step 1: Clone from GitHub..."
+          git clone --bare $TARGET_URL repo_dir
+          
+          cd repo_dir
+
+          # --- 3. Fetch GitCode (获取更新) ---
+          # 添加 GitCode 为远程仓库 'upstream'
+          git remote add upstream $SOURCE_URL
+          
+          echo ">>> Step 2: Fetching from GitCode..."
+          # 核心逻辑：将 GitCode 的所有分支和 Tag 强制 Fetch 到本地
+          # +refs/heads/*:refs/heads/* 表示：把 GitCode 的分支直接覆盖到本地的对应分支
+          git fetch upstream +refs/heads/*:refs/heads/* --prune
+          git fetch upstream --tags
+
+          # --- 4. Push GitHub (推送变更) ---
+          echo ">>> Step 3: Pushing back to GitHub..."
+          # 因为本地状态现在已经变成了 GitCode 的最新状态
+          # 我们将其强制推送到 origin (即 GitHub)
+          git push origin --all --force
+          git push origin --tags --force
+          
+          echo ">>> Sync finished for: ${{ matrix.repo_name }}"
