@@ -1,0 +1,28 @@
+name: Keep Alive (Anti-Suspension)
+
+on:
+  schedule:
+    # 每月 1 号的 UTC 0点运行一次 (约每30天)
+    # 这样足够在 60 天的截止期前刷新活跃度
+    - cron: '0 0 1 * *'
+  workflow_dispatch: # 允许手动触发测试
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 必须有写权限才能提交
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create Empty Commit
+        run: |
+          git config --global user.name "Keep Alive Bot"
+          git config --global user.email "bot@noreply.github.com"
+          
+          # --allow-empty 允许在没有文件修改的情况下提交
+          # 这样不会弄乱你的代码文件，只会增加一条 commit 记录
+          git commit --allow-empty -m "Automated keep-alive commit to prevent workflow suspension"
+          
+          git push
