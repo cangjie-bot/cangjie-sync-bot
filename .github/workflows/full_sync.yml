@@ -1,4 +1,4 @@
-name: Sync All Cangjie Repos (Pull & Push)
+name: Manual Force Sync
 
 on:
   workflow_dispatch:
