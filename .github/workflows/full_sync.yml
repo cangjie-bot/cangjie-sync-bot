@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  sync-job:
+  full-sync-job:
+    name: Full Sync Job
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
