@@ -31,28 +31,40 @@ jobs:
           
           echo ">>> 正在处理仓库: ${{ matrix.repo_name }}"
 
-          # --- 2. Clone GitHub (作为基准) ---
+          # --- 2. 检查远程引用 (Pre-check) ---
+          echo ">>> 正在对比远程引用..."
+          
+          # 获取 Source (GitCode) 和 Target (GitHub) 的 heads 和 tags
+          # 使用 awk 交换 SHA 和 REF 的位置并排序，以确保对比结果准确
+          git ls-remote --heads --tags "$SOURCE_URL" | awk '{print $2, $1}' | sort > source_refs.txt
+          git ls-remote --heads --tags "$TARGET_URL" | awk '{print $2, $1}' | sort > target_refs.txt
+          
+          if cmp -s source_refs.txt target_refs.txt; then
+            echo ">>> 仓库 ${{ matrix.repo_name }} 已经是最新状态，无需同步。"
+            exit 0
+          fi
+
+          echo ">>> 检测到变更，开始执行同步..."
+
+          # --- 3. Clone GitHub (作为基准) ---
           # 使用 --bare 模式，因为我们不需要检出代码文件，只需要 .git 目录及历史记录
-          # 这样速度快，且支持 llvm-project 这种大仓库
           echo ">>> Step 1: Clone from GitHub..."
           git clone --bare $TARGET_URL repo_dir
           
           cd repo_dir
 
-          # --- 3. Fetch GitCode (获取更新) ---
+          # --- 4. Fetch GitCode (获取更新) ---
           # 添加 GitCode 为远程仓库 'upstream'
           git remote add upstream $SOURCE_URL
           
           echo ">>> Step 2: Fetching from GitCode..."
           # 核心逻辑：将 GitCode 的所有分支和 Tag 强制 Fetch 到本地
-          # +refs/heads/*:refs/heads/* 表示：把 GitCode 的分支直接覆盖到本地的对应分支
           git fetch upstream +refs/heads/*:refs/heads/* --prune
           git fetch upstream --tags
 
-          # --- 4. Push GitHub (推送变更) ---
+          # --- 5. Push GitHub (推送变更) ---
           echo ">>> Step 3: Pushing back to GitHub..."
-          # 因为本地状态现在已经变成了 GitCode 的最新状态
-          # 我们将其强制推送到 origin (即 GitHub)
+          # 将本地状态强制推送到 origin (即 GitHub)
           git push origin --all --force
           git push origin --tags --force
           
