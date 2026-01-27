@@ -2,7 +2,7 @@ name: Sync All Cangjie Repos (Pull & Push)
 
 on:
   schedule:
-    - cron: '0/5 * * * *' # 每小时执行
+    - cron: '33 * * * *' # Runs at 33 minutes past the hour
   workflow_dispatch:
 
 jobs:
