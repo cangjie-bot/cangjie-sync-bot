@@ -60,7 +60,8 @@ jobs:
           echo ">>> Step 2: Fetching from GitCode..."
           # 核心逻辑：将 GitCode 的所有分支和 Tag 强制 Fetch 到本地
           git fetch upstream +refs/heads/*:refs/heads/* --prune
-          git fetch upstream --tags
+          # 使用强制引用映射拉取 tags，避免 "would clobber existing tag" 被拒绝
+          git fetch upstream +refs/tags/*:refs/tags/*
 
           # --- 5. Push GitHub (推送变更) ---
           echo ">>> Step 3: Pushing back to GitHub..."
